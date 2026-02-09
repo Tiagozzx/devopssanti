@@ -1,12 +1,14 @@
-name: CI Pipeline Increible
-on: [push]
+name: CI Pipeline
+on:
+  push:
+    branches: [ main ]
 
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Ejecutar en Docker
+      - name: Ejecutar Docker
         run: |
           docker build -t monitor-pro .
           docker run --name mi-contenedor monitor-pro
@@ -14,5 +16,5 @@ jobs:
       - name: Subir Reporte
         uses: actions/upload-artifact@v4
         with:
-          name: mi-reporte-final
+          name: reporte-final
           path: index.html
