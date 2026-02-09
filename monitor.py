@@ -1,81 +1,50 @@
 import requests
-import time
-from datetime import datetime
+import os
+import sys
+import json
 
-sitios = ["https://www.google.com", "https://github.com", "https://www.python.org", "https://www.openai.com"]
-resultados = []
+REPO = os.environ.get('GITHUB_REPOSITORY') # Ejemplo: "usuario/repo"
+TOKEN = os.environ.get('GITHUB_TOKEN')     # La llave maestra interna
 
-print("Iniciando Escaneo...")
+SITIOS = ["https://www.google.com", "https://github.com", "https://sitio-que-no-existe.com"]
 
-for url in sitios:
-    start_time = time.time()
+print(f"Iniciando para: {REPO}")
+
+errores = []
+
+for url in SITIOS:
     try:
         r = requests.get(url, timeout=5)
-        latency = (time.time() - start_time) * 1000 # Convertir a milisegundos
-        if r.status_code == 200:
-            estado = "Online"
-            clase = "success"
-        else:
-            estado = f"Error {r.status_code}"
-            clase = "warning"
-    except:
-        estado = "Offline"
-        latency = 0
-        clase = "danger"
+        if r.status_code != 200:
+            errores.append(f"{url} respondio con código {r.status_code}")
+    except Exception as e:
+        errores.append(f"{url} ERROR DE CONEXION")
+
+# SI HAY ERRORES, CREAMOS UN TICKET EN GITHUB
+if errores and REPO and TOKEN:
+    print(f"Se detectaron {len(errores)} fallos. Creando Issue...")
     
-    resultados.append((url, estado, f"{latency:.2f} ms", clase))
+    titulo = f" Reporte de Incidente: {len(errores)} servicios caídos"
+    cuerpo = "### El monitor automático detectó problemas:\n\n" + "\n".join([f"- {e}" for e in errores])
+    cuerpo += "\n\n*Por favor revisar infraestructura inmediatamente.*"
 
-# HTML CON ESTILOS MODERNOS (BOOTSTRAP)
-html_content = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Dashboard DevOps</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {{ background-color: #f8f9fa; padding: 20px; }}
-        .card {{ box-shadow: 0 4px 8px rgba(0,0,0,0.1); }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1 class="text-center mb-4">Monitor de Servicios</h1>
-        <p class="text-center text-muted">Último escaneo: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-        
-        <div class="card p-4">
-            <table class="table table-hover">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Sitio Web</th>
-                        <th>Estado</th>
-                        <th>Latencia (Velocidad)</th>
-                    </tr>
-                </thead>
-                <tbody>
-"""
+    api_url = f"https://api.github.com/repos/{REPO}/issues"
+    headers = {
+        "Authorization": f"token {TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    data = {"title": titulo, "body": cuerpo, "labels": ["bug", "auto-generated"]}
 
-for url, estado, latencia, clase in resultados:
-    html_content += f"""
-                    <tr class="table-{clase}">
-                        <td><strong>{url}</strong></td>
-                        <td>{estado}</td>
-                        <td>{latencia}</td>
-                    </tr>
-    """
+    try:
+        r = requests.post(api_url, json=data, headers=headers)
+        if r.status_code == 201:
+            print("Issue creada")
+        else:
+            print(f"Error creando issue: {r.status_code} - {r.text}")
+    except Exception as e:
+        print(f"Falló la conexion con GitHub: {e}")
 
-html_content += """
-                </tbody>
-            </table>
-        </div>
-        <footer class="text-center mt-4">
-            <small>Generado automáticamente por GitHub Actions</small>
-        </footer>
-    </div>
-</body>
-</html>
-"""
-
-with open("index.html", "w", encoding="utf-8") as f:
-    f.write(html_content)
-
-print("Dashboard generado con éxito.")
+elif errores:
+    print("ERROR")
+else:
+    print("Todo funciona perfecto")
