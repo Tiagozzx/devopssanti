@@ -3,10 +3,10 @@ import os
 import sys
 import json
 
-REPO = os.environ.get('GITHUB_REPOSITORY') # Ejemplo: "usuario/repo"
-TOKEN = os.environ.get('GITHUB_TOKEN')     # La llave maestra interna
+REPO = os.environ.get('GITHUB_REPOSITORY') 
+TOKEN = os.environ.get('GITHUB_TOKEN')    
 
-SITIOS = ["https://www.google.com", "https://github.com", "https://sitio-que-no-existe.com"]
+SITIOS = ["https://www.google.com", "https://github.com", "https:santi.com"]
 
 print(f"Iniciando para: {REPO}")
 
@@ -20,13 +20,12 @@ for url in SITIOS:
     except Exception as e:
         errores.append(f"{url} ERROR DE CONEXION")
 
-# SI HAY ERRORES, CREAMOS UN TICKET EN GITHUB
 if errores and REPO and TOKEN:
     print(f"Se detectaron {len(errores)} fallos. Creando Issue...")
     
     titulo = f" Reporte de Incidente: {len(errores)} servicios caídos"
-    cuerpo = "### El monitor automático detectó problemas:\n\n" + "\n".join([f"- {e}" for e in errores])
-    cuerpo += "\n\n*Por favor revisar infraestructura inmediatamente.*"
+    cuerpo = "### El monitor detecto problemas:\n\n" + "\n".join([f"- {e}" for e in errores])
+    cuerpo += "\n\n*Por favor revisar.*"
 
     api_url = f"https://api.github.com/repos/{REPO}/issues"
     headers = {
